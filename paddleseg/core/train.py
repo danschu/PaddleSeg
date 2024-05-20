@@ -25,7 +25,9 @@ from paddleseg.utils import (TimeAverager, calculate_eta, resume, logger,
                              worker_init_fn, train_profiler, op_flops_funs,
                              init_ema_params, update_ema_model)
 from paddleseg.core.val import evaluate
-
+import cv2
+import random
+import numpy as np
 
 def check_logits_losses(logits_list, losses):
     len_logits = len(logits_list)
@@ -57,7 +59,20 @@ def loss_computation(logits_list, labels, edges, losses):
             loss_list.append(coef_i * loss_i(logits, labels))
     return loss_list
 
-
+def rand_save_img(img):
+    if random.random() > 0.05:
+        return
+    output_dir = "train_transform"
+    os.makedirs(output_dir, exist_ok=True)
+    imcv = img.numpy()
+    imcv = ((imcv/2.+0.5)*255).astype(np.uint8)
+    imcv = imcv.transpose((1, 2, 0))
+    imcv = cv2.cvtColor(imcv, cv2.COLOR_BGR2RGB)
+    ti = random.randint(0, 1000)
+    cv2.imwrite(os.path.join(output_dir, f"image{ti}.jpg"), imcv)
+                
+                
+                
 def train(model,
           train_dataset,
           val_dataset=None,
@@ -191,6 +206,8 @@ def train(model,
 
             if hasattr(model, 'data_format') and model.data_format == 'NHWC':
                 images = images.transpose((0, 2, 3, 1))
+
+            rand_save_img(images[0])
 
             if precision == 'fp16':
                 with paddle.amp.auto_cast(
